@@ -1,0 +1,54 @@
+---
+title: "Can Lead Exposure Predict Poverty Levels?"
+author: "Megan Joseph"
+thanks: "Project repository available at: [https://github.com/meganajoseph/math261a_paper1](https://github.com/meganajoseph/math261a_paper1)."
+date: today
+date-format: long
+abstract: "Abstract here."
+format: pdf
+bibliography: references.bib
+number-sections: true
+---
+
+```{r}
+#| include: false
+#| warning: false
+#| message: false
+# load libraries
+library(tidyverse)
+library(ggpubr)
+library(patchwork)
+```
+
+# Introduction
+
+# Data
+
+```{r fig-calenviro-scatter}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-cap: "Scatter plot of the risk of lead exposure (x-axis) and percent of population in poverty (y-axis)."
+
+library(readxl)
+calenviroscreen <- read_excel("C:\\Users\\megan\\OneDrive\\Documents\\math_261a\\math261a_paper1\\calenviroscreen40resultsdatadictionaryf2021\\calenviroscreen40resultsdatadictionary_F_2021.xlsx")
+calenviroscreen$Lead = as.numeric(calenviroscreen$Lead)
+ggplot(calenviroscreen, aes(x = Lead, y = Poverty)) +
+  geom_point(color="deepskyblue3") +
+  labs(x="Risk for lead exposure",
+       y="Percent of population in poverty",
+       title="Comparison of lead exposure and poverty for 2010 census\ntracts in California") +
+  theme_minimal()
+```
+
+The data is from CalEnviroScreen 4.0 which is a tool created by the Office of Environmental Health Hazard Assessment in the California Environmental Protection Agency used to help identify communities in California that are most affected by pollution. It was last updated in 2021. The data used for the tool come from national and state sources.
+
+Each of the `r nrow(calenviroscreen)` rows represents a census tract from 2010. The key variables are Lead, which quantifies the potential risk for lead exposure in children in low-income communities, and poverty, which represents the percent of population living below two times the federal poverty level. Many other variables are present in the dataset but will not be used for this paper.
+
+One potential issue with the dataset is that there isn't direct information on exposures of lead, so the values used are based on pollution sources, releases, and environmental concentrations for potential exposures. I will assume that the indicators created are indicative of the potential for lead exposure.
+
+# Methods
+
+# Results
+
+# References

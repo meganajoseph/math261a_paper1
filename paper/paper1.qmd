@@ -24,6 +24,8 @@ library(patchwork)
 
 Can the potential risk of lead exposure in homes indicate poverty levels in an area? Many Americans live below the federal poverty line, especially in California where the cost of living is high. Identifying indicators of poverty may bring us closer to ending it. It has already been shown that older housing, which often has lead-based paint, and poverty are associated with high blood lead levels [@Data_report].
 
+\[include bg info on poverty and lead\]
+
 \[address knowledge gap, analysis, analysis, findings\]
 
 The remainder of the paper is structured as follows: @sec-data discusses the data, @sec-methods discusses the model, and @sec-results presents the results.
@@ -37,8 +39,13 @@ The remainder of the paper is structured as follows: @sec-data discusses the dat
 #| fig-cap: "Scatter plot of the risk of lead exposure (x-axis) and percent of population in poverty (y-axis)."
 
 library(readxl)
-calenviroscreen <- read_excel("calenviroscreen40resultsdatadictionaryf2021/calenviroscreen40resultsdatadictionary_F_2021.xlsx")
+calenviroscreen <- read_excel("../data/calenviroscreen40resultsdatadictionaryf2021/calenviroscreen40resultsdatadictionary_F_2021.xlsx")
+
+# dropping rows
+calenviroscreen <- calenviroscreen[!with(calenviroscreen, is.na(Lead) & is.na(Poverty)),]
+
 calenviroscreen$Lead = as.numeric(calenviroscreen$Lead)
+
 ggplot(calenviroscreen, aes(x = Lead, y = Poverty)) +
   geom_point(color="deepskyblue3") +
   labs(x="Risk for lead exposure",
@@ -47,19 +54,25 @@ ggplot(calenviroscreen, aes(x = Lead, y = Poverty)) +
   theme_minimal()
 ```
 
-The data is from CalEnviroScreen 4.0 which is a tool created by the Office of Environmental Health Hazard Assessment in the California Environmental Protection Agency used to help identify communities in California that are most affected by pollution [@Data]. It was last updated in 2021. The data used for the tool come from national and state sources.
+## Data Overview {#sec-data-overview}
 
-Each of the `r nrow(calenviroscreen)` rows represents a census tract from 2010. The key variables are Lead, which quantifies the potential risk for lead exposure in children in low-income communities, and poverty, which represents the percent of population living below two times the federal poverty level [@Data_report]. Lead is transformed to a numeric variable because it is originally a character. Many other variables are present in the dataset but will not be used for this paper.
+The data is from CalEnviroScreen 4.0 which is a tool created by the Office of Environmental Health Hazard Assessment in the California Environmental Protection Agency used to help identify communities in California that are most affected by pollution [@Data_report]. The data used for the tool come from national and state sources and was last updated in 2021 [@Data].
 
-Poverty was taken from the American Community Survey, an ongoing survey of a sample of US population by the US Census Bureau, from 2015-2019. While the survey uses the federal poverty level to determine if people live below the federal poverty line, this dataset uses twice the federal poverty line because of California's high cost of living. Poverty is calculated by dividing the total population with a poverty status with the number of individuals below 200% of the poverty level for each census tract in California [@Data_report].
+Each of the `r nrow(calenviroscreen)` rows represents a census tract from 2010. The key variables are Lead, which quantifies the potential risk for lead exposure in children in low-income communities, and poverty, which represents the percent of population living below two times the federal poverty level [@Data_report]. Lead is transformed to a numeric variable because it is originally a character. Additionally, there are `r sum(is.na(calenviroscreen$Lead))` missing rows whicih will be dropped from the dataset. Many other variables are present in the dataset but will not be used for this paper. @fig-calenviro-scatter shows a scatter plot of Poverty on the y-axis and Lead on the x-axis. As the risk for lead exposure increases, the percent in poverty increases a bit as well.
 
-One issue is that the American Community Survey come from a sample of the population rather than the entire population, so the Poverty variable may not be fully representative of the California population. To increase reliability, census tracts with estimates that either had a relative standard error less then 50 or a standard error less than the mean standard error of all California census tract estimates for poverty were included and the rest received no score [@Data_report].
+## Poverty {#sec-poverty}
 
-Another potential issue with the dataset is that there isn't direct information on exposures of lead, so the values used are based on pollution sources, releases, and environmental concentrations for potential exposures. To calculate this value, they used the percentage of households in each census tract with a likelihood of lead-based paint hazards based on housing age and the percentage of low-income households with children. Households with a likelihood of containing lead-based paint were determined by the construction period for each housing unit. The final lead risk for housing score is the weighted sum of the percent of home with likelihood of lead-based paint hazards percentile and the low-income household with children percentile. Here is the full equation: $0.6L + 0.4H = S$ where $L$ is the percentile for lead-based paint hazards, $H$ is the percentile of low-income household with children, and $S$ is the final score [@Data_report]. I will assume that the indicators created are indicative of the potential for lead exposure.
+The poverty column was taken from the American Community Survey, an ongoing survey of a sample of US population by the US Census Bureau, from 2015-2019 [@Data_report]. While the survey uses the federal poverty level to determine if people live below the federal poverty line, this dataset uses twice the federal poverty line because of California's high cost of living [@Data_report]. Poverty is calculated by dividing the total population with a poverty status with the number of individuals below 200% of the poverty level for each census tract in California [@Data_report]. There are `r sum(is.na(calenviroscreen$Poverty))` missing rows which will be dropped from the data.
+
+One issue with the dataset is that the American Community Survey data come from a sample of the population rather than the entire population, so the Poverty variable may not be fully representative of the California population. To increase reliability, census tracts with estimates that either had a relative standard error less then 50 or a standard error less than the mean standard error of all California census tract estimates for poverty were included and the rest received no score [@Data_report].
+
+## Lead {#sec-lead}
+
+Another potential issue is that there isn't direct information on exposures of lead, so the values used are based on pollution sources, releases, and environmental concentrations for potential exposures [@Data_report]. To calculate this value, they used the percentage of households in each census tract with a likelihood of lead-based paint hazards based on housing age and the percentage of low-income households with children [@Data_report]. The percentage of home with likelihood of lead-based paint hazards was calculated in a series of steps. First, California homes were grouped into categories based on age [@Data_report]. The, the number of housing units in each category was multiplpied by the reported percentage of homes with lead-based paint hazards [@Data_report]. Finally, the number of housing units in each category were added and divided by the total number of housing units in the census tract [@Data_report]. The percentage of low income households with children was calculated by estimating the number of households with incomes less than 80% of the county mean with one or more children under the age of six [@Data_report]. The final lead risk for housing score is the weighted sum of the percent of homes with likelihood of lead-based paint hazards percentile and the low-income household with children percentile: $0.6L + 0.4H = S$ where $L$ is the percentile for lead-based paint hazards, $H$ is the percentile of low-income household with children, and $S$ is the final score [@Data_report]. I will assume that the indicators created are indicative of the potential for lead exposure.
+
+## Alternative Sources {#sec-alt-sources}
 
 Alternative sources of data include finding data directly from the US Census so as to use data from the entire population rather than a sample. Using a dataset that had actual measures of lead exposure in housing would also lead to more reliable answers.
-
-@fig-calenviron-scatter indicates a weak positive association between potential risk for lead exposure and poverty.
 
 # Methods {#sec-methods}
 

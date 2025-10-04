@@ -18,6 +18,8 @@ number-sections: true
 library(tidyverse)
 library(ggpubr)
 library(patchwork)
+library(ggplot2)
+library(ggtext)
 ```
 
 # Introduction {#sec-intro}
@@ -32,26 +34,18 @@ The remainder of the paper is structured as follows: @sec-data discusses the dat
 
 # Data {#sec-data}
 
-```{r fig-calenviro-scatter}
-#| echo: false
+```{r}
+#| include: false
 #| warning: false
 #| message: false
-#| fig-cap: "Scatter plot of the risk of lead exposure (x-axis) and percent of population in poverty (y-axis)."
 
 library(readxl)
 calenviroscreen <- read_excel("../data/calenviroscreen40resultsdatadictionaryf2021/calenviroscreen40resultsdatadictionary_F_2021.xlsx")
 
 # dropping rows
-calenviroscreen <- calenviroscreen[!with(calenviroscreen, is.na(Lead) & is.na(Poverty)),]
+calenviroscreen <- calenviroscreen[!with(calenviroscreen, is.na(Lead) | is.na(Poverty)),]
 
 calenviroscreen$Lead = as.numeric(calenviroscreen$Lead)
-
-ggplot(calenviroscreen, aes(x = Lead, y = Poverty)) +
-  geom_point(color="deepskyblue3") +
-  labs(x="Risk for lead exposure",
-       y="Percent of population in poverty",
-       title="Comparison of lead exposure and poverty for 2010 census\ntracts in California") +
-  theme_minimal()
 ```
 
 ## Data Overview {#sec-data-overview}
@@ -60,11 +54,25 @@ The data is from CalEnviroScreen 4.0 which is a tool created by the Office of En
 
 Each of the `r nrow(calenviroscreen)` rows represents a census tract from 2010. The key variables are Lead, which quantifies the potential risk for lead exposure in children in low-income communities, and poverty, which represents the percent of population living below two times the federal poverty level [@Data_report]. Lead is transformed to a numeric variable because it is originally a character. Additionally, there are `r sum(is.na(calenviroscreen$Lead))` missing rows whicih will be dropped from the dataset. Many other variables are present in the dataset but will not be used for this paper. @fig-calenviro-scatter shows a scatter plot of Poverty on the y-axis and Lead on the x-axis. As the risk for lead exposure increases, the percent in poverty increases a bit as well.
 
+```{r fig-calenviro-scatter}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-cap: "Scatter plot of the risk of lead exposure (x-axis) and percent of population in poverty (y-axis)."
+
+ggplot(calenviroscreen, aes(x = Lead, y = Poverty)) +
+  geom_point(color="pink2") +
+  labs(x="Risk for lead exposure",
+       y="Percent of population in poverty",
+       title="Comparison of lead exposure and poverty for 2010 census\ntracts in California") +
+  theme_minimal()
+```
+
 ## Poverty {#sec-poverty}
 
-The poverty column was taken from the American Community Survey, an ongoing survey of a sample of US population by the US Census Bureau, from 2015-2019 [@Data_report]. While the survey uses the federal poverty level to determine if people live below the federal poverty line, this dataset uses twice the federal poverty line because of California's high cost of living [@Data_report]. Poverty is calculated by dividing the total population with a poverty status with the number of individuals below 200% of the poverty level for each census tract in California [@Data_report]. There are `r sum(is.na(calenviroscreen$Poverty))` missing rows which will be dropped from the data.
+The poverty column was taken from the American Community Survey (ACS), an ongoing survey of a sample of US population by the US Census Bureau, from 2015-2019 [@Data_report]. While the survey uses the federal poverty level to determine if people live below the federal poverty line, this dataset uses twice the federal poverty line because of California's high cost of living [@Data_report]. Poverty is calculated by dividing the total population with a poverty status with the number of individuals below 200% of the poverty level for each census tract in California [@Data_report]. There are `r sum(is.na(calenviroscreen$Poverty))` missing rows which will be dropped from the data.
 
-One issue with the dataset is that the American Community Survey data come from a sample of the population rather than the entire population, so the Poverty variable may not be fully representative of the California population. To increase reliability, census tracts with estimates that either had a relative standard error less then 50 or a standard error less than the mean standard error of all California census tract estimates for poverty were included and the rest received no score [@Data_report].
+One issue with the dataset is that the ACS data come from a sample of the population rather than the entire population, so the Poverty variable may not be fully representative of the California population. To increase reliability, census tracts with estimates that either had a relative standard error less then 50 or a standard error less than the mean standard error of all California census tract estimates for poverty were included and the rest received no score [@Data_report].
 
 ## Lead {#sec-lead}
 
@@ -76,7 +84,14 @@ Alternative sources of data include finding data directly from the US Census so 
 
 # Methods {#sec-methods}
 
-To answer the research question, I will fit a simple linear regression model to the data with Poverty as the response and Lead as the predictor. Let $Y_i$ represent the percent of the population in the census tract living below two times the federal poverty level and $X_i$ represent the potential risk for lead exposure in children living in low-income communities with older housing. The model can we written as $$Y_i = \beta_0 + \beta_1 X_i + \varepsilon_i \text{ for i = 1, ..., n}$$where $\beta_0$ represents the mean of the probability distribution of the percent of the population in poverty when risk for lead exposure is 0, $\beta_1$ represents the average increase in percent in poverty per unit increase in risk for lead exposure, and $\varepsilon_i$ represents random error with mean 0 and variance $\sigma^2$.
+To answer the research question, I will fit a simple linear regression model to the data with Poverty as the response and Lead as the predictor. Let $Y_i$ represent the percent of the population in the census tract living below two times the federal poverty level and $X_i$ represent the potential risk for lead exposure in children living in low-income communities with older housing. The model can we written as $$Y_i = \beta_0 + \beta_1 X_i + \varepsilon_i \text{ for i = 1, ..., n}$$where $\beta_0$ represents the mean of the probability distribution of the percent of the population in poverty when risk for lead exposure is 0, $\beta_1$ represents the average change in percent in poverty per unit increase in risk for lead exposure, and $\varepsilon_i$ represents independent random error assumed to have mean 0 and variance $\sigma^2$.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+model <- lm(calenviroscreen$Poverty ~ calenviroscreen$Lead)
+```
 
 The assumptions for linear regression are:
 
@@ -87,7 +102,56 @@ The assumptions for linear regression are:
 5.  The variance of the errors must be equal.
 6.  Errors must be normal.
 
-\[address assumptions\]
+## Addressing Assumptions
+
+1.  The variables used here are Poverty and Lead from the dataset. They reflect the quantities of interest: the percent living under two times the federal poverty line and the potential risk of lead exposure. The model includes Lead as a predictor.
+
+2.  The population of interest is households in California. The sample data comes from each census tract in California which is representative of our population of interest. One caveat, though, is that the data is not per household but rather per census tract. Additionally, certain areas may not be accounted for in the Lead column due to ACS taking data from only a sample of the US population.
+
+3.  There is a slight departure from linearity as seen in @fig-assumptions (a) where the residuals are not equally dispersed around the line y=0. A curvilinear line may be better suited, but I will still fit a simple linear regression.
+
+4.  I plotted the residuals against zip codes because we need to check them against some series, usually time. This dataset only has geographic series, which still works. @fig-assumptions (a) shows that the errors seem independent. Most of the data are from zip codes greater than 87500, so we can ignore the few points around 0. There doesn't seem to be any strange patterns, so I will assume that the errors are independent.
+
+5.  @fig-assumptions (b) shows that the variance of the errors may not be equal. It shows a slight cone shape, especially below the y=0 line. Nonconstancy of error variance is very common and does not mean that the regression is invalid.
+
+6.  A histogram of residuals is the best way to check for normality because we can see if the graph resembles a normal distribution. @fig-assumptions (c) shows that the errors appear to be close to normal with a slight right skew. I will assume that the errors are normal.
+
+```{r fig-assumptions, fig.width=8,fig.height=6}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig-cap: "Plots addressing the last four assumptions of linear regression."
+
+indep_errors <- ggplot(calenviroscreen, aes(x=ZIP, y=Poverty - (model$coefficients[1] + model$coefficients[2] * Lead))) +
+  geom_point(color="pink2") +
+  labs(x="Fitted values",
+       y="Residuals",
+       title="Checking independence of errors by plotting\nresiduals against zip code (a)") +
+  geom_hline(aes(yintercept=0), color="pink4") +
+  theme_minimal() +
+  theme(plot.title=element_text(size=12))
+
+var_errors <- ggplot(model, aes(x=.fitted, y=.resid)) +
+  geom_point(color="pink2") +
+  labs(x="Fitted values",
+       y="Residuals",
+       title="Checking constancy of error variance by\nplotting residuals against fitted values (b)") +
+  geom_hline(aes(yintercept=0), color="pink4") +
+  theme_minimal() +
+  theme(plot.title=element_text(size=12))
+
+normal_errors <- ggplot(model, aes(x=.resid)) +
+  geom_histogram(fill="pink2", color="pink4") +
+  labs(x="Residuals",
+       y="Frequency",
+       title="Checking normality of errors by plotting a\nhistogram of residuals (c)") +
+  theme_minimal() +
+  theme(plot.title=element_text(size=12))
+
+wrap_plots(A=indep_errors, B = var_errors, C = normal_errors, design = "AABB\n#CC#")
+
+options(repr.plot.width=20, repr.plot.height=50)
+```
 
 I use the `lm()` function from the R programming language [@R_language] to fit the linear regression model.
 
@@ -98,10 +162,9 @@ I use the `lm()` function from the R programming language [@R_language] to fit t
 #| warning: false
 #| message: false
 #| fig-cap: "Scatter plot of the risk of lead exposure (x-axis) and percent of population in poverty (y-axis) with fitted linear regression model $Y_i = b_0 + b_0 X_i$."
-model <- lm(calenviroscreen$Poverty ~ calenviroscreen$Lead)
 
 ggplot(calenviroscreen, aes(x = Lead, y = Poverty)) +
-  geom_point(color="deepskyblue3") +
+  geom_point(color="pink2") +
   labs(x="Risk for lead exposure",
        y="Percent of population in poverty",
        title="Comparison of lead exposure and poverty for 2010 census\ntracts in California with fitted simple linear regression model") +

@@ -20,6 +20,7 @@ library(ggpubr)
 library(patchwork)
 library(ggplot2)
 library(ggtext)
+library(tidyr)
 ```
 
 # Introduction {#sec-intro}
@@ -40,12 +41,11 @@ The remainder of the paper is structured as follows: @sec-data discusses the dat
 #| message: false
 
 library(readxl)
-calenviroscreen <- read_excel("../data/calenviroscreen40resultsdatadictionaryf2021/calenviroscreen40resultsdatadictionary_F_2021.xlsx")
+calenviroscreen <- read_excel("C:/Users/megan/OneDrive/Documents/math_261a/math261a_paper1/data/calenviroscreen40resultsdatadictionaryf2021/calenviroscreen40resultsdatadictionary_F_2021.xlsx")
 
 # dropping rows
-calenviroscreen <- calenviroscreen[!with(calenviroscreen, is.na(Lead) | is.na(Poverty)),]
-
-calenviroscreen$Lead = as.numeric(calenviroscreen$Lead)
+calenviroscreen$Lead <- as.numeric(calenviroscreen$Lead)
+calenviroscreen <- calenviroscreen %>% drop_na(Lead, Poverty)
 ```
 
 ## Data Overview {#sec-data-overview}
@@ -157,25 +157,56 @@ I use the `lm()` function from the R programming language [@R_language] to fit t
 
 # Results {#sec-results}
 
+The estimated slope parameter is $b_1 \approx$ `r round(summary(model)$coefficients[2], 3)`. This means that for each unit increase in potential risk for lead exposure, the percent in poverty increases by `r round(summary(model)$coefficients[2], 3)` on average. The estimated intercept parameter is $b_0  \approx$ `r round(summary(model)$coefficients[1], 3)`. Since the dataset includes a potential risk for lead exposure at 0, the average percent in poverty at that value is `r round(summary(model)$coefficients[1], 3)`.
+
+The coefficient of determination ($R^2$) is `r round(summary(model)$r.squared, 3)`. This means that `r 100 * round(summary(model)$r.squared, 3)`% of the variation in percent of households living two times below the federal poverty level is explained by the potential risk of lead exposure. This is not very high which is most likely due to poverty being a much more complex issue that cannot be explained by potential lead exposure alone. Other possible implications of poverty include, but are not limited to, race, education, neighborhood, and parent income levels. @fig-model-fit plots the regression line on top of the data. Many of the points are far above and far below the line which only heightens the fact that potential risk for lead exposure is not the only explanatory variable for poverty.
+
 ```{r fig-model-fit}
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-cap: "Scatter plot of the risk of lead exposure (x-axis) and percent of population in poverty (y-axis) with fitted linear regression model $Y_i = b_0 + b_0 X_i$."
+#| fig-cap: "Scatter plot of the risk of lead exposure (x-axis) and percent of population in poverty (y-axis) with fitted simple linear regression model $Y_i = b_0 + b_0 X_i$."
 
 ggplot(calenviroscreen, aes(x = Lead, y = Poverty)) +
   geom_point(color="pink2") +
   labs(x="Risk for lead exposure",
        y="Percent of population in poverty",
        title="Comparison of lead exposure and poverty for 2010 census\ntracts in California with fitted simple linear regression model") +
-  geom_abline(aes(intercept=coefficients(model)[1], slope=coefficients(model)[2]), color="black") +
+  geom_abline(aes(intercept=coefficients(model)[1], slope=coefficients(model)[2]), color="pink4") +
   theme_minimal()
 ```
 
-The estimated slope parameter is $b_1=$ `r round(summary(model)$coefficients[2], 3)`. This means that for each unit increase in potential risk for lead exposure, the percent in poverty increases by `r round(summary(model)$coefficients[2], 3)` on average. The estimated intercept parameter is $b_0  =$ `r round(summary(model)$coefficients[1], 3)`. This means that when the potential risk for lead exposure is 0, the average percent in poverty is `r round(summary(model)$coefficients[1], 3)`.
+## Hypothesis Test
 
-\[add hypothesis test\]
+A two-sided hypothesis test of the form
 
-\[add discussion\]
+$$H_0: \beta_1 = 0$$
+$$H_a: \beta_1 \neq 0$$
+
+will be used to test if there is a linear association between Poverty and Lead. If we conclude the null hypothesis, then there is no linear association [@KNNL].
+
+To do this, we assume the normal error regression model [@KNNL]. Earlier, I found that the errors are approximately normal, but the variance does not appear to be constant. Since this does not make the regression invalid, I will proceed as if it were constant.
+
+I will control the risk of a Type I error at $\alpha = 0.05$. With this, I will make a 95% confidence interval. If 0 is contained in the interval, then I will conclude $H_0$. Otherwise, I will conclude $H_a$ [@KNNL].
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+mse <- sum(model$residuals**2) / (nrow(calenviroscreen) - 2)
+s_squared <- mse / sum((calenviroscreen$Lead - mean(calenviroscreen$Lead))**2)
+s <- sqrt(s_squared)
+t <- qt(p=0.975, df=(nrow(calenviroscreen) - 2))
+
+lower_bound <- model$coefficients[2] - t*s
+upper_bound <- model$coefficients[2] + t*s
+```
+
+The 95% confidence limits for $\beta_1$ are $b_1 \pm t(1-\alpha/2;n-2)s\{b_1\}$ where $t(1 - \alpha/2; n-2)$ is the $\alpha/2$ 100 percentile of the t distribution with $n-2$ degrees of freedom and $s\{b_1\}$ is the point estimator of the standard deviation [@KNNL]. Plugging in our numbers, the 95% confidence limits for $\beta_1$ are `r round(model$coefficients[2], 3)` $\pm t(0.975;$ `r nrow(calenviroscreen) - 2` ) $\cdot$ `r round(s, 3)`
+
+After calculating, `r round(lower_bound, 3)` $\leq \beta_1 \leq$ `r round(upper_bound, 3)`. Since 0 is not contained in our interval, we can reject the null hypothesis. Therefore, there is a linear association between Poverty and Lead.    
+
+## Discussion {#sec-discussion}
 
 # References {#sec-references}

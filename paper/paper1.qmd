@@ -50,7 +50,7 @@ calenviroscreen <- read_excel("C:/Users/megan/OneDrive/Documents/math_261a/math2
 
 The data is from CalEnviroScreen 4.0 which is a tool created by the Office of Environmental Health Hazard Assessment in the California Environmental Protection Agency used to help identify communities in California that are most affected by pollution [@Data_report]. The data used for the tool come from national and state sources and was last updated in 2021 [@Data].
 
-Each of the `r nrow(calenviroscreen)` rows represents a census tract from 2010. A census tract is made up of the smallest geographic unit for population data: census blocks [@Data_reports]. They are typically areas bounded by streets, streams, and other features [@Rossiter_2021]. The key variables are Lead, which quantifies the potential risk for lead exposure in children in low-income communities, and poverty, which represents the percent of the population living below two times the federal poverty level [@Data_report]. Lead is transformed to a numeric variable because it is originally a character. Additionally, Lead ranges from 0 - 100 due to how it was created. See @sec-lead for more details. Many other variables are present in the dataset but will not be used for this paper. @fig-calenviro-scatter shows a scatter plot of Poverty on the y-axis and Lead on the x-axis. As the risk for lead exposure increases, the percent in poverty increases a bit as well.
+Each of the `r nrow(calenviroscreen)` rows represents a census tract from 2010. A census tract is made up of the smallest geographic unit for population data: census blocks [@Data_report]. They are typically areas bounded by streets, streams, and other features [@Rossiter_2021]. The key variables are Lead, which quantifies the potential risk for lead exposure in children in low-income communities, and poverty, which represents the percent of the population living below two times the federal poverty level [@Data_report]. Lead is transformed to a numeric variable because it is originally a character. Additionally, Lead ranges from 0 - 100 due to how it was created. See @sec-lead for more details. Many other variables are present in the dataset but will not be used for this paper. @fig-calenviro-scatter shows a scatter plot of Poverty on the y-axis and Lead on the x-axis. As the risk for lead exposure increases, the percent in poverty increases a bit as well.
 
 Since this data is at the census tract level rather than at the household level, this analysis cannot conclude anything on the household scale, only at the census tract level. This analysis is not equivalent to an analysis at an individual household level. While there may be similar trends across both, the conclusions will differ. This is because we lose some variation at the household level when data is aggregated in this way. Since data is only available at the census tract level, the analysis will proceed at that scale knowing that analysis cannot be made on the household level.
 
@@ -74,9 +74,9 @@ ggplot(calenviroscreen, aes(x = Lead, y = Poverty)) +
 
 ## Poverty {#sec-poverty}
 
-The poverty column was taken from the American Community Survey (ACS), an ongoing survey of a sample of US population by the US Census Bureau, from 2015-2019 [@Data_report]. While the survey uses the federal poverty level to determine if people live below the federal poverty line, this dataset uses twice the federal poverty line because of California's high cost of living [@Data_report]. As a result, Poverty is calculated by dividing the total population with a poverty status with the number of individuals below 200% of the poverty level for each census tract in California rather than 100% [@Data_report].
+The poverty column was taken from the American Community Survey (ACS), an ongoing survey of a sample of the US population by the US Census Bureau, from 2015-2019 [@Data_report]. While the survey uses the federal poverty level to determine if people live below the federal poverty line, this dataset uses twice the federal poverty line because of California's high cost of living [@Data_report]. As a result, Poverty is calculated by dividing the total population with a poverty status with the number of individuals below 200% of the poverty level for each census tract in California rather than 100% [@Data_report].
 
-One issue with the dataset is that the ACS data come from a sample of the population rather than the entire population, so the Poverty variable may not be fully representative of the California population. To increase reliability, census tracts with estimates that either had a relative standard error less then 50 or a standard error less than the mean standard error of all California census tract estimates for poverty were included and the rest received no score [@Data_report].
+One issue with the dataset is that the ACS data come from a sample of the population rather than the entire population, so the Poverty variable may not be fully representative of the California population. To increase reliability, census tracts with estimates that either had a relative standard error less than 50 or a standard error less than the mean standard error of all California census tract estimates for poverty were included and the rest received no score [@Data_report].
 
 ## Lead {#sec-lead}
 
@@ -110,51 +110,42 @@ The assumptions for linear regression are:
 
 1.  The variables used here are Poverty and Lead from the dataset. They reflect the quantities of interest: the percent living under two times the federal poverty line and the potential risk of lead exposure. The model includes Lead as a predictor.
 
-2.  The population of interest is households in California. The sample data comes from each census tract in California which is representative of our population of interest. One caveat, though, is that the data is not per household but rather per census tract. Additionally, certain areas may not be accounted for in the Lead column due to ACS taking data from only a sample of the US population.
+2.  The population of interest is a California census tract. The sample data comes from each census tract in California which is representative of our population of interest. Certain areas, though, may not be accounted for in the Lead column due to ACS taking data from only a sample of the US population.
 
-3.  There is a slight departure from linearity as seen in @fig-assumptions (a) where the residuals are not equally dispersed around the line y=0. A curvilinear line may be better suited, but I will still fit a simple linear regression.
+3.  There is a slight departure from linearity as seen in @fig-assumptions (a) where the residuals are not equally dispersed around the line $y=0$. This means that both the parameter estimates and error variance will be biased [@KNNL]. A curvilinear line may be better suited, but I will still fit a simple linear regression.
 
-4.  I plotted the residuals against zip codes because we need to check them against some series, usually time. This dataset only has geographic series, which still works. @fig-assumptions (a) shows that the errors seem independent. Most of the data are from zip codes greater than 87500, so we can ignore the few points around 0. There doesn't seem to be any strange patterns, so I will assume that the errors are independent.
+4.  Knowing information about one census tract will tell us information on the surrounding tracts because they do not contain huge geographic areas. Since their demographics are similar, their scores will be similar as well. As a result, the errors are not independent. This means that the estimators are unbiased but have biased variance [@KNNL].
 
-5.  @fig-assumptions (b) shows that the variance of the errors may not be equal. It shows a slight cone shape, especially below the y=0 line. Nonconstancy of error variance is very common and does not mean that the regression is invalid.
+5.  @fig-assumptions (a) shows that the variance of the errors may not be equal. It shows a slight cone shape, especially below the $y=0$ line. Nonconstancy of error variance is very common, but it does lead to less efficient estimates and invalid error variance estimates [@KNNL].
 
-6.  A histogram of residuals is the best way to check for normality because we can see if the graph resembles a normal distribution. @fig-assumptions (c) shows that the errors appear to be close to normal with a slight right skew. I will assume that the errors are normal.
+6.  A Q-Q plot of the residual percentiles against the standard normal percentiles is the best way to check for normality because we can see direct departures from the normal distribution. @fig-assumptions (b) shows that the errors appear to be close to normal with upward deviations on each end. I will assume that the errors are normal.
 
-```{r fig-assumptions, fig.width=8,fig.height=6}
+```{r fig-assumptions, fig.width=8, fig.height=4}
 #| echo: false
 #| warning: false
 #| message: false
-#| fig-cap: "Plots addressing the last four assumptions of linear regression."
+#| fig-cap: "Plot a shows unequal variance in error terms and plot b shows deviations from normality on both ends of the residual percentile."
 
-indep_errors <- ggplot(calenviroscreen, aes(x=ZIP, y=Poverty - (model$coefficients[1] + model$coefficients[2] * Lead))) +
-  geom_point(color="pink2") +
-  labs(x="Fitted values",
-       y="Residuals",
-       title="Checking independence of errors by plotting\nresiduals against zip code (a)") +
-  geom_hline(aes(yintercept=0), color="pink4") +
-  theme_minimal() +
-  theme(plot.title=element_text(size=12))
-
+par(mfrow=c(1, 2))
 var_errors <- ggplot(model, aes(x=.fitted, y=.resid)) +
   geom_point(color="pink2") +
   labs(x="Fitted values",
        y="Residuals",
-       title="Checking constancy of error variance by\nplotting residuals against fitted values (b)") +
+       title="Checking constancy of error variance by\nplotting residuals against fitted values (a)") +
   geom_hline(aes(yintercept=0), color="pink4") +
   theme_minimal() +
   theme(plot.title=element_text(size=12))
 
-normal_errors <- ggplot(model, aes(x=.resid)) +
-  geom_histogram(fill="pink2", color="pink4") +
-  labs(x="Residuals",
-       y="Frequency",
-       title="Checking normality of errors by plotting a\nhistogram of residuals (c)") +
+normal_errors <- ggplot(model, aes(sample=.resid)) +
+  stat_qq(color="pink2") +
+  stat_qq_line(color="pink4") +
+  labs(x="Standard normal percentile",
+       y="Residuals percentile",
+       title="Checking normality of errors with a Q-Q plot\nof residual percentile over standard normal\npercentile (b)") +
   theme_minimal() +
   theme(plot.title=element_text(size=12))
 
-wrap_plots(A=indep_errors, B = var_errors, C = normal_errors, design = "AABB\n#CC#")
-
-options(repr.plot.width=20, repr.plot.height=50)
+var_errors + normal_errors
 ```
 
 I use the `lm()` function from the R programming language [@R_language] to fit the linear regression model.

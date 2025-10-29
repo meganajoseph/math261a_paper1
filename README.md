@@ -1,4 +1,4 @@
-# Is There a Linear Association Between Potential Risk of Lead Exposure and Poverty Levels?
+# Potential Risk of Lead Exposure May Indicate Poverty Levels
 
 ## Author: Megan Joseph
 
